@@ -7,6 +7,7 @@ Capstone Submission Package
 
 The BrainStation_Capstone folder contains:
 1 ReadMe file,
+1 Font file,
 1 Packages and Importation file,
 1 Capstone_Report folder that contains the submission report,
 3 Jupyter Notebooks, 
