@@ -1,36 +1,59 @@
+######################################################
+# Project: Snake Game                                #
+# Author: Pranav Panchal                             #
+# Date: 12/09/2022                                   # 
+######################################################                               
+# This generates the environment for the snake games #
+# in accordance with gym library                     #
+######################################################
+
+
+# Importing dependencies
 from pickletools import float8
 import gym
 from gym import spaces
 import numpy as np
-
-# import gameAI
-
-# from gym_game.envs import gameAI
 from gym_game.envs.gameAI import *
-# from gameAI import *
 from gym_game.envs.gameAI_hard import *
-# from gameAI_hard import *
-
-# import gameAgent
-
-
 
 class CustomEnv(gym.Env):
+    '''
+    This helps to initialise the custom snake game environment
+    '''
+    # defines the render_mode parameter for the class
     metadata = {"render_modes": ["human"]}
 
-    def __init__(self, render_mode = None):
-        self.game = SnakeGameAI(WIDTH, HEIGHT)
+    def __init__(self, render_mode = None, speed = 15, width = 800, height = 800):
+        '''
+        INPUT: render_mode (Optional)
+        OUTPUT: None
+
+        Initialise the snake game environment
+        Get the observation space and action space
+        Check the render_mode of the environment
+        '''
+        self.width = width
+        self.height = height
+        self.speed = speed
+        self.game = SnakeGameAI(self.width, self.height, self.speed)
         self.action_space = spaces.Discrete(3)
         self.observation_space = spaces.Box(low=np.array([0,0,0]), high=np.array([8,4,8]), dtype=np.int32)
-
         assert render_mode is None or render_mode in self.metadata["render_modes"]
         self.render_mode = render_mode
         self.window = None
         self.clock = None
 
     def reset(self):
+        '''
+        INPUT: None
+        OUTPUT: state
+
+        Resets the game environment by deleting and reinitialising the game environment
+        Gets the state of the environment
+        Renders the game window if render_mode == "human"
+        '''
         del self.game
-        self.game = SnakeGameAI(WIDTH, HEIGHT)
+        self.game = SnakeGameAI(self.width, self.height, self.speed)
         state = self.game.get_state(self.game)
 
         if self.render_mode == "human":
@@ -39,6 +62,14 @@ class CustomEnv(gym.Env):
         return state
 
     def step(self, action):
+        '''
+        INPUT: action
+        OUTPUT: state, reward, done, truncated, score
+
+        Gets the reward, done and score by running a gamestep
+        Gets the new state of the environment
+        Renders the game window if render_mode == "human"
+        '''
         reward, done, score = self.game.game_step(action)
         state = self.game.get_state(self.game)
 
@@ -47,29 +78,57 @@ class CustomEnv(gym.Env):
 
         return state, reward, done, False, {"Score": score}
 
-    def render(self, mode="human", close=False):
+    def render(self):
+        '''
+        Renders the game window if render_mode == "human"
+        '''
         self.game.draw_game()
 
     def close(self):
-        # if self.window is not None:
-            pygame.display.quit()
-            pygame.quit()
+        '''
+        Closes the game environment
+        '''
+        pygame.display.quit()
+        pygame.quit()
 
 class CustomEnv_hard(gym.Env):
+    '''
+    This helps to initialise the custom snake game environment
+    '''
+    # defines the render_mode parameter for the class
     metadata = {'render_modes' : ['human']}
-    def __init__(self, render_mode = None):
-        self.game = SnakeGameAI_hard(WIDTH, HEIGHT)
+
+    def __init__(self, render_mode = None, speed = 15, width = 800, height = 800):
+        '''
+        INPUT: render_mode (Optional)
+        OUTPUT: None
+
+        Initialise the snake game environment
+        Get the observation space and action space
+        Check the render_mode of the environment
+        '''
+        self.width = width
+        self.height = height
+        self.speed = speed
+        self.game = SnakeGameAI_hard(self.width, self.height, self.speed)
         self.action_space = spaces.Discrete(3)
         self.observation_space = spaces.Box(low=np.array([0,0,0]), high=np.array([8,4,8]), dtype=np.int32)
-
         assert render_mode is None or render_mode in self.metadata["render_modes"]
         self.render_mode = render_mode
         self.window = None
         self.clock = None
 
     def reset(self):
+        '''
+        INPUT: None
+        OUTPUT: state
+
+        Resets the game environment by deleting and reinitialising the game environment
+        Gets the state of the environment
+        Renders the game window if render_mode == "human"
+        '''
         del self.game
-        self.game = SnakeGameAI_hard(WIDTH, HEIGHT)
+        self.game = SnakeGameAI_hard(self.width, self.height, self.speed)
         state = self.game.get_state(self.game)
         
         if self.render_mode == "human":
@@ -78,6 +137,14 @@ class CustomEnv_hard(gym.Env):
         return state
 
     def step(self, action):
+        '''
+        INPUT: action
+        OUTPUT: state, reward, done, truncated, score
+
+        Gets the reward, done and score by running a gamestep
+        Gets the new state of the environment
+        Renders the game window if render_mode == "human"
+        '''
         reward, done, score = self.game.game_step(action)
         state = self.game.get_state(self.game)
         
@@ -86,36 +153,15 @@ class CustomEnv_hard(gym.Env):
 
         return state, reward, done, False, {"Score": score}
 
-    def render(self, mode="human", close=False):
+    def render(self):
+        '''
+        Renders the game window if render_mode == "human"
+        '''
         self.game.draw_game()
 
     def close(self):
-        # if self.window is not None:
-            pygame.display.quit()
-            pygame.quit()
-
-# def main():
-#     a = spaces.Box(low=np.array([0,0,0]), high=np.array([7,3,7]), dtype=np.int32)
-#     # print(a.low)
-#     b = spaces.Discrete(3)
-#     print(b.sample())
-
-#     state_low = a.low
-#     state_high = a.high
-#     # state_shape = env.observation_space.shape
-#     # print(f"State range: {state_low}, {state_high}")
-#     state_size = state_high - state_low
-
-#     qtable = np.zeros(*state_size,b.n)
-
-#     print(qtable)
-
-#     g = SnakeGameAI()
-
-#     st = g.get_state()
-
-
-
-
-# if __name__ == "__main__":
-#     main()
+        '''
+        Closes the game environment
+        '''
+        pygame.display.quit()
+        pygame.quit()

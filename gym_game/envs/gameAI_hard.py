@@ -6,6 +6,7 @@
 # This is a snake game with obstacles engine which take AI inputs #
 ###################################################################
 
+# Importing dependencies
 from collections import namedtuple
 import pygame
 import random
@@ -18,49 +19,47 @@ import ctypes
 ctypes.windll.user32.SetProcessDPIAware()
 
 # game window variables
-WIDTH = 800
-HEIGHT = 800
-
 BLOCK = 40
-SPEED = 25
 
-# colors
+# game colors
 BLACK = (0, 0, 0)
 WHITE = (255, 255, 255)
-
 RED = (255, 105, 97)
 GREEN = (119, 221, 119)
 GRAY = (90, 102, 117)
 
 class Direction(Enum):
+    '''
+    This maps the direction variables to numbers
+    '''
     UP = 1
     RIGHT = 2
     DOWN = 3
     LEFT = 4
 
+# create a namedtuple
 Point = namedtuple("Point", "x, y")
 
-clock = pygame.time.Clock()
-
 class SnakeGameAI_hard:
-    # metadata = {"render_mode": ["human", "rgb_array"]}
+    '''
+    This class defines the snake game environment with obstacles
+    '''
 
-    def __init__(self, WIDTH = 800, HEIGHT = 800):
+    def __init__(self, WIDTH, HEIGHT, SPEED):
+        '''
+        Initialises the snake game environment.
+        Reads the game HEIGHT and game WIDTH passed while calling the class and overwrites it on the default
+        Initialises the game clock
+        Initialises the snake head and body
+        Give the snake a direction to move in
+        Sets the game score to 0
+        Spawns the food
+        '''
         self.width = WIDTH
         self.height = HEIGHT
-
-        # display event
-        # self.WIN = pygame.display.set_mode((self.width, self.height))
-        # pygame.display.set_caption("Snake AI!!!")
-        
-        # self.render_mode = render_mode
+        self.speed = SPEED
         self.clock = pygame.time.Clock()
-        # self.n_games = 1
-        # self.reset()
-
-    # reset and re-initialise the game state
-    # def reset(self):#, WIDTH, HEIGHT):    
-        self.head = Point(self.width/2, self.height/2)
+        self.head = Point(((self.width/BLOCK)//2)*BLOCK, ((self.height/BLOCK)//2)*BLOCK)
         self.snakebody = [self.head,
                           Point(self.head.x-BLOCK, self.head.y),
                           Point(self.head.x-(2*BLOCK), self.head.y)]
@@ -68,29 +67,30 @@ class SnakeGameAI_hard:
         self.score = 0
         self.gen_food()
         self.gen_obstacle()
-        self.frame_iteration = 0
-        # state = self.get_state(self)
-        # display event
-        # if self.render_mode == "human":
-        # self.draw_game()
-        #     self.render()
-        # done = False
-        # return state
 
-    # generate food at a random location on map, if random location is within snakebody -> recall gen_food() again
     def gen_food(self):
+        '''
+        Picks a random location on the grid and places the food there
+        If random location is within snakebody -> recall gen_food()
+        '''
         x = random.randint(0, (self.width - BLOCK) // BLOCK) * BLOCK
-        y = random.randint(0, (self.width - BLOCK) // BLOCK) * BLOCK
+        y = random.randint(0, (self.height - BLOCK) // BLOCK) * BLOCK
         self.food = Point(x, y)
         if self.food in self.snakebody:
             self.gen_food()
 
     def gen_obstacle(self):
+        '''
+        Picks a random location on the grid and places the obstacles there
+        If random location is within snakebody -> recall gen_obstacle()
+        If random location is on food -> recall gen_obstacle()
+        If random location of both obstacles is same -> recall gen_obstacle()
+        '''
         x1 = random.randint(0, (self.width - BLOCK) // BLOCK) * BLOCK
-        y1 = random.randint(0, (self.width - BLOCK) // BLOCK) * BLOCK
+        y1 = random.randint(0, (self.height - BLOCK) // BLOCK) * BLOCK
         self.obstacle1 = Point(x1, y1)
         x2 = random.randint(0, (self.width - BLOCK) // BLOCK) * BLOCK
-        y2 = random.randint(0, (self.width - BLOCK) // BLOCK) * BLOCK
+        y2 = random.randint(0, (self.height - BLOCK) // BLOCK) * BLOCK
         self.obstacle2 = Point(x2, y2)
         if self.obstacle1 in self.snakebody or self.obstacle2 in self.snakebody:
             self.gen_obstacle()
@@ -98,50 +98,60 @@ class SnakeGameAI_hard:
             self.gen_obstacle()
         elif self.obstacle1 == self.obstacle2:
             self.gen_obstacle()
-        # if self.obstacle2 in self.snakebody:
-        #     self.gen_obstacle()
         
     def game_step(self, action):
-        # increase frame_iteration to run in-game clock
-        self.frame_iteration += 1
-                   
+        '''
+        INPUT: action
+        OUTPUT: reward, done, score
+
+        Takes a single gamestep lasting 1 game time unit
+
+        First it moves the snake by reading the 'action' passed to function move
+        Set game reward to 0 and sets 'done' to False
+        Checks for collision
+        Checks whether movement caused the snake to eat food or not
+        '''          
         # move in the current direction
         self.move(action)
         self.snakebody.insert(0, self.head)
 
-        # state = self.get_state(self)
-
-        # checks whether game is done(over)
+        # check whether game is done(over)
+        # YES -> decrease reward by 10, make done = TRUE
+        # NO -> do nothing
         reward = 0
         done = False
-        if self.is_collision() or self.frame_iteration > 100 * len(self.snakebody):
+        if self.is_collision():
             reward = -10
             done = True
             return reward, done, self.score
 
-        # check new step resulted in eating food (YES -> increase score, get reward, gen_food()) |#| (NO -> move and shift the tail)
+        # check new step resulted in eating food 
+        # YES -> increase score, get reward, gen_food(), gen_obstacle() 
+        # NO -> move and shift the tail
         if self.head == self.food:
             self.score += 1
             reward = 10
-            self.frame_iteration = 0
             self.gen_food()
             self.gen_obstacle()
         else:
             self.snakebody.pop()        
 
-        # display event
-        # if self.render_mode == "human":
-        # self.draw_game()
-        #     self.render()
-
-        self.clock.tick(SPEED)
+        self.clock.tick(self.speed)
 
         return reward, done, self.score
     
     def move(self, action):
+        '''
+        INPUT: action
+        OUTPUT: new position of head of snake
+
+        Accepts the action passed to the function, reads it and determines the direction change, if any
+        Move the snake head in that direction by 1 BLOCK
+        '''
         clockwise = [Direction.UP, Direction.RIGHT, Direction.DOWN, Direction.LEFT]
         idx = clockwise.index(self.direction)
 
+        # check if the action caused the snake to change its direction
         if action == 0: # action == [0,1,0]
             self.direction = clockwise[idx]
         elif action == 1: # action == [1,0,0]
@@ -149,8 +159,7 @@ class SnakeGameAI_hard:
         elif action == 2: # action == [0,0,1]
             self.direction = clockwise[(idx + 1) % 4]
 
-        # self.direction = new_direction
-
+        # move the snake by 1 block in the direction it is facing
         x = self.head.x
         y = self.head.y
         if self.direction == Direction.RIGHT:
@@ -158,15 +167,26 @@ class SnakeGameAI_hard:
         elif self.direction == Direction.LEFT:
             x -= BLOCK
         elif self.direction == Direction.UP:
-            # print(new_direction)
             y -= BLOCK
         elif self.direction == Direction.DOWN:
             y += BLOCK
 
         self.head = Point(x, y)
+
         return self.head
 
     def is_collision(self, pt = None):
+        '''
+        INPUT: a point on game grid -> (Optional)
+        OUTPUT: bool
+        
+        Check whether the snake movement resulted in a collision with wall or snakebody
+        
+        If a separate point is passed as an argument, then it checks whether that point results in a collision
+        If no point is passed, it check whether snake head has collided
+        '''
+        # Check the 'x' and 'y' location of the snake head and determine 
+        # whether it has collided with a wall, obstacle or its own body
         if pt is None:
             pt = self.head
         if pt.x < 0 or pt.x > self.width - BLOCK or pt.y < 0 or pt.y > self.height - BLOCK:
@@ -178,29 +198,33 @@ class SnakeGameAI_hard:
 
 
     def draw_game(self):
+        '''
+        Initialises the visual elements of the snake game like the game window, snake body etc.
+        '''
+        # initialise the game window and set caption
         self.WIN = pygame.display.set_mode((self.width, self.height))
         pygame.display.set_caption("Snake AI!!!")
 
+        # fill the game window with a background color
         self.WIN.fill(BLACK)
 
+        # check for the event of closing the game window
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 pygame.quit()
 
-        for x in np.arange(BLOCK, WIDTH, BLOCK):
-            pygame.draw.line(self.WIN, GRAY, (x, 0), (x, HEIGHT))
-        for y in np.arange(BLOCK, HEIGHT, BLOCK):
-            pygame.draw.line(self.WIN, GRAY, (0, y), (WIDTH, y))
+        # display the grid lines
+        for x in np.arange(BLOCK, self.width, BLOCK):
+            pygame.draw.line(self.WIN, GRAY, (x, 0), (x, self.height))
+        for y in np.arange(BLOCK, self.height, BLOCK):
+            pygame.draw.line(self.WIN, GRAY, (0, y), (self.width, y))
 
+        # display snakebody
         for item in self.snakebody:
             pygame.draw.rect(self.WIN, RED, (item.x, item.y, BLOCK, BLOCK))
 
         # display food
         pygame.draw.rect(self.WIN, GREEN, (self.food.x, self.food.y, BLOCK, BLOCK))
-
-        #  # display obstacle
-        # pygame.draw.rect(self.WIN, WHITE, (self.obstacle1.x, self.obstacle1.y, BLOCK, BLOCK))
-        # pygame.draw.rect(self.WIN, WHITE, (self.obstacle2.x, self.obstacle2.y, BLOCK, BLOCK))
 
         # display obstacle
         pygame.draw.circle(self.WIN, WHITE, (self.obstacle1.x+(BLOCK/2), self.obstacle1.y+(BLOCK/2)), (BLOCK/2))
@@ -214,17 +238,31 @@ class SnakeGameAI_hard:
         pygame.display.flip()
 
     def get_state(self, game):
+        '''
+        INPUT: game
+        OUTPUT: state
+
+        This function returns the current state of the game encoded as tuple containing 3 integers
+
+        Example outputs:
+        (8, 2, 3)
+        (4, 3, 7)
+        '''
+        # locates the head of the snake and creates points 1 BLOCK distance away from snake head in all directions
         head = game.snakebody[0]
         head_l = Point(head.x - BLOCK, head.y)
         head_r = Point(head.x + BLOCK, head.y)
         head_u = Point(head.x, head.y - BLOCK)
         head_d = Point(head.x, head.y + BLOCK)
         
+        # gets the direction of snake head movement and converts it into a boolean variable
         dir_l = game.direction == Direction.LEFT
         dir_r = game.direction == Direction.RIGHT
         dir_u = game.direction == Direction.UP
         dir_d = game.direction == Direction.DOWN
 
+        # checks whether the front, left or right points just created results in collision of not
+        # and creates a list of 3 bool values depicting the danger blocks around the snake head
         dan = [
             # Danger straight
             (dir_r and game.is_collision(head_r)) or 
@@ -245,6 +283,7 @@ class SnakeGameAI_hard:
             (dir_d and game.is_collision(head_r))
         ]
 
+        # creates a list of 4 bool values depicting the snake head movement direction
         direc = [
             # Move direction
             dir_r,
@@ -253,6 +292,7 @@ class SnakeGameAI_hard:
             dir_d,
         ]
 
+        # check the relative location of food w.r.t. to snake head
         apple = [
             # Food location
             game.food.y < game.head.y,  # food up
@@ -261,49 +301,30 @@ class SnakeGameAI_hard:
             game.food.x < game.head.x,  # food left
         ]
 
+        # fixes an issue when sometime the boolean function for checking collision return a 'None' value
         for i, v in enumerate(dan):
             if v == None:
                 dan[i] = 0
 
+        # list of all possible danger values on the game grid and mapping them to integers
         dan_list = [[0,0,0],[0,0,1],[0,1,0],[0,1,1],[1,0,0],[1,0,1],[1,1,0],[1,1,1]]
-
         for i, v in enumerate(dan_list):
             if dan == v:
                 dan = i
 
+        # list of all possible direction on the game grid and mapping them to integers
         direc_list = [[0,0,0,1],[0,0,1,0],[0,1,0,0],[1,0,0,0]]
-
         for i, v in enumerate(direc_list):
             if direc == v:
                 direc = i
         
+        # list of all possible food locations on the game grid and mapping them to integers
         apple_list = [[0,0,0,1],[0,0,1,1],[0,0,1,0],[0,1,1,0],[0,1,0,0],[1,1,0,0],[1,0,0,0],[1,0,0,1]]
-
         for i, v in enumerate(apple_list):
             if apple == v:
                 apple = i
 
+        # getting a tuple out of the integer values
         state = (dan,direc,apple)
 
         return state
-
-    # def get_action(self):#, state):
-    #     move = random.randint(0, 2)
-                
-    #     return move
-
-def main():
-    s = SnakeGameAI_hard()
-    for i in range(100):        
-        # clear_output(wait = True)
-        st = s.get_state(s)
-        print(st)
-        print(type(st))
-        a = s.get_action()       
-        reward, done, score = s.game_step(a)
-        s.clock.tick(SPEED)
-        # if done:
-        #     break
-
-if __name__ == "__main__":
-    main()
